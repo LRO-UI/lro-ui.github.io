@@ -1,0 +1,18 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lroui.tasks",
+      "sha256_cert_fingerprints": ["2A:E8:F0:F8:23:0D:EA:49:A8:58:F9:79:1D:B2:D8:B6:CA:B4:CE:7F:DB:D6:26:6E:B6:56:26:ED:56:AC:12:45"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lroui.library",
+      "sha256_cert_fingerprints": ["21:C3:24:06:AA:2C:E9:F4:D3:DF:B5:0A:4C:D6:EC:36:0B:BA:BB:D2:FE:0E:2F:E9:55:A9:3F:F8:59:4F:61:AC"]
+    }
+  }
+]

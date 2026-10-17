@@ -66,6 +66,46 @@
   footer{ border-top:1px solid var(--line); text-align:center; padding:22px 30px; font-size:.75rem; color:var(--ink-soft); }
   footer a{ color:var(--blue2); }
 
+  /* Tool window */
+  body.in-tool{ overflow:hidden; }
+  #viewer{ position:fixed; inset:0; background:var(--bg); }
+  #frame{ position:absolute; top:0; right:0; bottom:0; left:48px; width:calc(100% - 48px); height:100%; border:0; background:var(--bg); }
+  .rail{ position:absolute; top:0; bottom:0; left:0; width:48px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 0;
+    background:var(--panel); border-right:1px solid var(--panel-edge); z-index:3; }
+  .rail::after{ content:''; position:absolute; top:0; bottom:0; right:3px; border-right:1px solid rgba(92,127,158,.25); pointer-events:none; }
+  .icon-btn{ width:36px; height:36px; display:grid; place-items:center; background:none; border:1px solid transparent; color:var(--ink-soft); cursor:pointer; padding:0; text-decoration:none; }
+  .icon-btn:hover{ color:var(--ink); border-color:var(--line); }
+  .icon-btn svg{ width:20px; height:20px; }
+  .icon-btn:focus-visible, .nav-item:focus-visible{ outline:2px solid var(--ink); outline-offset:1px; }
+  .rail .current{ margin-top:6px; width:36px; height:36px; display:grid; place-items:center; color:var(--blue2); border:1px solid var(--blue2); }
+  .rail .current svg{ width:18px; height:18px; }
+
+  .backdrop{ position:absolute; inset:0; background:rgba(5,6,9,.55); z-index:4; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .drawer{ position:absolute; top:0; bottom:0; left:0; width:min(300px, 86vw); background:var(--panel); border-right:4px double var(--blue2); z-index:5;
+    display:flex; flex-direction:column; transform:translateX(-102%); transition:transform .22s ease; visibility:hidden; }
+  #viewer.open .drawer{ transform:none; visibility:visible; }
+  #viewer.open .backdrop{ opacity:1; pointer-events:auto; }
+  .drawer-head{ display:flex; align-items:center; gap:8px; padding:12px 12px 12px 16px; border-bottom:1px solid var(--line); }
+  .drawer-head a{ font-family:var(--font-display); font-weight:800; font-size:1.05rem; color:var(--ink); text-decoration:none; margin-right:auto; }
+  .drawer-tools{ display:flex; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .drawer-tools .search{ font-size:.85rem; padding:9px 11px; margin:0; max-width:none; flex:1; min-width:0; }
+  .drawer-tools .lang{ margin:0; }
+  .drawer-tools .lang button{ padding:8px 9px; font-size:.68rem; }
+  .nav{ flex:1; overflow-y:auto; padding:6px 0 20px; }
+  .nav .group-title{ margin:16px 16px 6px; font-size:.6rem; }
+  .nav-item{ display:flex; align-items:center; gap:11px; padding:8px 16px; color:var(--ink-soft); text-decoration:none; font-size:.86rem; border-left:3px solid transparent; }
+  .nav-item:hover{ color:var(--ink); background:rgba(63,111,168,.1); }
+  .nav-item[aria-current="page"]{ color:var(--ink); border-left-color:var(--blue); background:rgba(63,111,168,.18); }
+  .nav-item svg{ width:18px; height:18px; flex:none; color:var(--blue2); }
+  .nav-item small{ margin-left:auto; font-size:.58rem; letter-spacing:.1em; color:var(--warn); }
+
+  @media (max-width:700px){
+    .rail{ top:auto; bottom:14px; left:12px; width:auto; height:auto; flex-direction:row; padding:0; background:none; border:0; }
+    .rail::after, .rail .current, .rail .home-btn{ display:none; }
+    .rail .menu-btn{ width:46px; height:46px; background:rgba(20,23,31,.92); border:1px solid var(--blue2); color:var(--ink); box-shadow:0 4px 14px rgba(0,0,0,.45); }
+    #frame{ left:0; width:100%; }
+  }
+
   @media (max-width:600px){
     header{ padding:14px 16px; }
     header h1{ font-size:1.2rem; }
@@ -75,6 +115,7 @@
 </style>
 </head>
 <body>
+<div id="home">
 <header>
   <h1 data-i18n="siteName">LRO-UI Tools</h1>
   <div class="lang" role="group" aria-label="Language">
@@ -102,6 +143,31 @@
   <span data-i18n="footer">Made by LRO-UI. Free to use.</span>
   · <a href="https://github.com/LRO-UI" target="_blank" rel="noopener">GitHub</a>
 </footer>
+</div>
+
+<div id="viewer" hidden>
+  <nav class="rail">
+    <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-expanded="false" aria-controls="drawer" data-i18n-title="menu"></button>
+    <a class="icon-btn home-btn" href="#" data-i18n-title="home"></a>
+    <span class="current" id="currentIco" aria-hidden="true"></span>
+  </nav>
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="drawer" id="drawer" aria-label="Tools">
+    <div class="drawer-head">
+      <a href="#" data-i18n="siteName">LRO-UI Tools</a>
+      <button type="button" class="icon-btn" id="closeBtn" data-i18n-title="close"></button>
+    </div>
+    <div class="drawer-tools">
+      <input class="search" id="navSearch" type="search" autocomplete="off" data-i18n-placeholder="search" placeholder="Search tools">
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="pt" aria-pressed="false">PT</button>
+      </div>
+    </div>
+    <div class="nav" id="nav"></div>
+  </aside>
+  <iframe id="frame" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+</div>
 
 <script>
 // Interface text. Add a language by adding a block here and a button in the header.
@@ -111,7 +177,7 @@ const UI = {
     headline:'Free tools that run in your browser',
     sub:'Nothing to install, no account, no limits. Your files stay on your device.',
     search:'Search tools', all:'All', none:'No tools match your search.',
-    enOnly:'English only', footer:'Made by LRO-UI. Free to use.',
+    enOnly:'English only', menu:'Show all tools', home:'Main screen', close:'Close menu', footer:'Made by LRO-UI. Free to use.',
     cat:{ design:'Design & color', marketing:'Marketing', docs:'Text & documents', utility:'Utilities', apps:'Apps', games:'Games' }
   },
   pt: {
@@ -119,7 +185,7 @@ const UI = {
     headline:'Ferramentas grátis que rodam no seu navegador',
     sub:'Nada para instalar, sem cadastro, sem limites. Seus arquivos ficam no seu aparelho.',
     search:'Buscar ferramentas', all:'Todas', none:'Nenhuma ferramenta encontrada.',
-    enOnly:'Só em inglês', footer:'Feito por LRO-UI. Uso gratuito.',
+    enOnly:'Só em inglês', menu:'Mostrar todas as ferramentas', home:'Tela inicial', close:'Fechar menu', footer:'Feito por LRO-UI. Uso gratuito.',
     cat:{ design:'Design e cor', marketing:'Marketing', docs:'Texto e documentos', utility:'Utilidades', apps:'Apps', games:'Jogos' }
   }
 };
@@ -150,77 +216,78 @@ const ICON = {
   grid:'<path d="M9 3v18M15 3v18M3 9h18M3 15h18"/><path d="M4.5 4.5l3 3M7.5 4.5l-3 3"/><circle cx="18" cy="18" r="1.6"/>'
 };
 
-// The tool list. path = repo name on GitHub Pages; pt = has a PT-BR/ folder.
+// The tool list. path = folder in tools/ (also the #/address); pt = has a pt-br/ folder.
+// src overrides the address for apps that live in their own repo (their installed apps depend on it).
 const TOOLS = [
-  { path:'Palette_Generator', cat:'design', icon:'palette', pt:true,
+  { path:'palette-generator', cat:'design', icon:'palette', pt:true,
     en:['Palette Generator','Build color palettes by style and harmony, then download them.'],
     ptT:['Gerador de Paletas','Crie paletas de cores por estilo e harmonia e baixe o resultado.'] },
-  { path:'Palette_Extractor', cat:'design', icon:'drop', pt:false,
+  { path:'palette-extractor', cat:'design', icon:'drop', pt:false,
     en:['Palette Extractor','Pull the main colors out of any image.'],
     ptT:['Extrator de Paleta','Extraia as cores principais de qualquer imagem.'] },
-  { path:'Gradient-Generator', cat:'design', icon:'gradient', pt:false,
+  { path:'gradient-generator', cat:'design', icon:'gradient', pt:false,
     en:['Gradient Generator','Linear, mesh and corner gradients with noise and grain, in several sizes.'],
     ptT:['Gerador de Degradê','Degradês lineares, mesh e de canto, com ruído e granulação, em vários tamanhos.'] },
-  { path:'Contrast_Checker', cat:'design', icon:'contrast', pt:false,
+  { path:'contrast-checker', cat:'design', icon:'contrast', pt:false,
     en:['Contrast Checker','Check contrast ratios with text, icon and button examples, and compare color pairs.'],
     ptT:['Verificador de Contraste','Confira a taxa de contraste com exemplos de texto, ícone e botão e compare combinações.'] },
-  { path:'Color_Blindness', cat:'design', icon:'eye', pt:false,
+  { path:'color-blindness', cat:'design', icon:'eye', pt:false,
     en:['Color Blindness Simulator','See images and palettes as people with each type of color blindness do.'],
     ptT:['Simulador de Daltonismo','Veja imagens e paletas como pessoas com cada tipo de daltonismo veem.'] },
-  { path:'FavIcon_Generator', cat:'design', icon:'star', pt:false,
+  { path:'favicon-generator', cat:'design', icon:'star', pt:false,
     en:['Favicon Generator','Make favicons for your website in every size you need.'],
     ptT:['Gerador de Favicon','Crie favicons para o seu site em todos os tamanhos necessários.'] },
-  { path:'Casework', cat:'design', icon:'type', pt:false,
+  { path:'casework', cat:'design', icon:'type', pt:false,
     en:['Casework','A font and text editor.'],
     ptT:['Casework','Editor de fontes e texto.'] },
-  { path:'Image_Resizer', cat:'design', icon:'resize', pt:false,
+  { path:'image-resizer', cat:'design', icon:'resize', pt:false,
     en:['Image Resizer','Resize images to custom sizes or to social media and ad formats.'],
     ptT:['Redimensionar Imagens','Redimensione imagens para tamanhos livres ou formatos de redes sociais e anúncios.'] },
 
-  { path:'Ad_Mockup', cat:'marketing', icon:'ad', pt:true,
+  { path:'ad-mockup', cat:'marketing', icon:'ad', pt:true,
     en:['Ad Mockup','Preview ad copy and images in Facebook and Instagram feeds, stories and more.'],
     ptT:['Mockup de Anúncios','Veja a prévia de copy e imagens em feeds, stories e outros posicionamentos do Facebook e Instagram.'] },
-  { path:'UTM_Builder', cat:'marketing', icon:'link', pt:true,
+  { path:'utm-builder', cat:'marketing', icon:'link', pt:true,
     en:['UTM Builder','Build tracked links with channels, variables and parameters.'],
     ptT:['Gerador de UTM','Monte links rastreáveis com canais, variáveis e parâmetros.'] },
-  { path:'QR-Code_Generator', cat:'marketing', icon:'qr', pt:true,
+  { path:'qr-code-generator', cat:'marketing', icon:'qr', pt:true,
     en:['QR Code Generator','QR codes for links, email, Wi-Fi, location and phone. Download as PNG or SVG.'],
     ptT:['Gerador de QR Code','QR codes para links, e-mail, Wi-Fi, localização e telefone. Baixe em PNG ou SVG.'] },
 
-  { path:'PDF_Editor', cat:'docs', icon:'pdf', pt:true,
+  { path:'pdf-editor', cat:'docs', icon:'pdf', pt:true,
     en:['PDF Editor','Add, remove and reorder pages in a PDF.'],
     ptT:['Editor de PDF','Adicione, remova e reorganize páginas de um PDF.'] },
-  { path:'PDF_Numbering', cat:'docs', icon:'hash', pt:true,
+  { path:'pdf-numbering', cat:'docs', icon:'hash', pt:true,
     en:['PDF Page Numbering','Add page numbers to a PDF, choosing font, size and position.'],
     ptT:['Numerar Páginas de PDF','Adicione números às páginas de um PDF, escolhendo fonte, tamanho e posição.'] },
-  { path:'Word_Counter', cat:'docs', icon:'count', pt:true,
+  { path:'word-counter', cat:'docs', icon:'count', pt:true,
     en:['Word Counter','Count words, characters, lines and sentences, and see the most used words.'],
     ptT:['Contador de Palavras','Conte palavras, caracteres, linhas e frases e veja as palavras mais usadas.'] },
-  { path:'Line_Compare', cat:'docs', icon:'compare', pt:false,
+  { path:'line-compare', cat:'docs', icon:'compare', pt:false,
     en:['Line Compare','Compare two texts and see every change between them.'],
     ptT:['Comparar Textos','Compare dois textos e veja todas as mudanças entre eles.'] },
-  { path:'Flowchart_Studio', cat:'docs', icon:'flow', pt:true,
+  { path:'flowchart-studio', cat:'docs', icon:'flow', pt:true,
     en:['Flowchart Studio','Draw flowcharts with every standard shape, a glossary, and several download formats.'],
     ptT:['Estúdio de Fluxogramas','Desenhe fluxogramas com todas as formas padrão, glossário e vários formatos de download.'] },
 
-  { path:'Password_Generator', cat:'utility', icon:'key', pt:true,
+  { path:'password-generator', cat:'utility', icon:'key', pt:true,
     en:['Password Generator','Generate strong passwords with the length and characters you choose.'],
     ptT:['Gerador de Senhas','Gere senhas fortes com o tamanho e os caracteres que você escolher.'] },
-  { path:'Metadata_Stripper', cat:'utility', icon:'strip', pt:true,
+  { path:'metadata-stripper', cat:'utility', icon:'strip', pt:true,
     en:['Metadata Stripper','See the hidden data in your files and remove what you choose.'],
     ptT:['Removedor de Metadados','Veja os dados ocultos nos seus arquivos e remova o que quiser.'] },
 
-  { path:'Tasks-App', cat:'apps', icon:'check', pt:false,
+  { path:'tasks', src:'/Tasks-App/', cat:'apps', icon:'check', pt:false,
     en:['Tasks','A retro task manager with daily and weekly views, folders and subtasks.'],
     ptT:['Tasks','Gerenciador de tarefas retrô com visão diária e semanal, pastas e subtarefas.'] },
-  { path:'My-Library', cat:'apps', icon:'book', pt:false,
+  { path:'my-library', src:'/My-Library/', cat:'apps', icon:'book', pt:false,
     en:['My Library','An ebook reader and audiobook shelf you can install on your phone.'],
     ptT:['My Library','Leitor de ebooks e estante de audiolivros que você pode instalar no celular.'] },
 
-  { path:'Spin_the_Wheel', cat:'games', icon:'wheel', pt:false,
+  { path:'spin-the-wheel', cat:'games', icon:'wheel', pt:false,
     en:['Spin the Wheel','An Art Deco prize wheel with as many entries as you like.'],
     ptT:['Roda da Sorte','Roda giratória em estilo Art Déco, com quantas opções você quiser.'] },
-  { path:'Ultimate_Tic_Tac_Toe', cat:'games', icon:'grid', pt:false,
+  { path:'ultimate-tic-tac-toe', cat:'games', icon:'grid', pt:false,
     en:['Ultimate Tic Tac Toe','Many versions of tic tac toe, against the computer or a friend.'],
     ptT:['Jogo da Velha Supremo','Várias versões do jogo da velha, contra o computador ou um amigo.'] }
 ];
@@ -240,21 +307,88 @@ const svg = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 
+const BTN_ICON = {
+  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>'
+};
+const btnSvg = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BTN_ICON[name]}</svg>`;
+
+let current = null; // tool open in the window, or null on the main screen
+const usePt = () => lang === 'pt';
+const toolText = x => usePt() ? x.ptT : x.en;
+const toolSrc = x => x.src || `/tools/${x.path}/${usePt() && x.pt ? 'pt-br/' : ''}`;
+
 function setLang(next){
   lang = next;
   try{ localStorage.setItem(LANG_KEY, next); }catch(e){}
   applyText();
   renderChips();
   render();
+  renderNav();
+  if (current) loadFrame();
 }
 
 function applyText(){
   const t = UI[lang];
-  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
-  document.title = t.siteName;
+  document.documentElement.lang = usePt() ? 'pt-BR' : 'en';
+  document.title = current ? `${toolText(current)[0]} · ${t.siteName}` : t.siteName;
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t[el.dataset.i18n]; });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t[el.dataset.i18nPlaceholder]; });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t[el.dataset.i18nTitle]; el.setAttribute('aria-label', el.title); });
   document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+}
+
+function renderNav(){
+  const t = UI[lang];
+  const q = norm($('navSearch').value.trim());
+  $('nav').innerHTML = CATS.map(c => {
+    const items = TOOLS.filter(x => x.cat === c && (!q || norm([...x.en, ...x.ptT].join(' ')).includes(q)));
+    if (!items.length) return '';
+    return `<h2 class="group-title">${esc(t.cat[c])}</h2>` + items.map(x => {
+      const cur = x === current ? ' aria-current="page"' : '';
+      const en = usePt() && !x.pt ? '<small>EN</small>' : '';
+      return `<a class="nav-item" href="#/${x.path}"${cur}>${svg(x.icon)}<span>${esc(toolText(x)[0])}</span>${en}</a>`;
+    }).join('');
+  }).join('');
+}
+
+function loadFrame(){
+  const f = $('frame');
+  const src = toolSrc(current);
+  if (f.dataset.src !== src){
+    // replace() keeps tool swaps out of the browser history, so Back follows the #/ addresses
+    if (f.dataset.src) f.contentWindow.location.replace(src);
+    else f.src = src;
+    f.dataset.src = src;
+  }
+  f.title = toolText(current)[0];
+}
+
+function setMenu(open){
+  const v = $('viewer');
+  if (v.classList.contains('open') === open) return;
+  v.classList.toggle('open', open);
+  $('menuBtn').setAttribute('aria-expanded', String(open));
+  if (open) $('closeBtn').focus();
+  else if ($('drawer').contains(document.activeElement)) $('menuBtn').focus();
+}
+
+// #/tool-folder opens that tool in the window; anything else shows the main screen.
+// The frame keeps its page while on the main screen, so going back to the same tool keeps your work.
+function route(){
+  const slug = location.hash.replace(/^#\/?/, '');
+  current = TOOLS.find(x => x.path === slug) || null;
+  $('home').hidden = !!current;
+  $('viewer').hidden = !current;
+  document.body.classList.toggle('in-tool', !!current);
+  setMenu(false);
+  if (current){
+    loadFrame();
+    $('currentIco').innerHTML = svg(current.icon);
+  }
+  applyText();
+  renderNav();
 }
 
 function renderChips(){
@@ -274,11 +408,9 @@ function render(){
     });
     if (!items.length) return '';
     const cards = items.map(x => {
-      const usePt = lang === 'pt';
-      const [name, desc] = usePt ? x.ptT : x.en;
-      const href = `/${x.path}/${usePt && x.pt ? 'PT-BR/' : ''}`;
-      const badge = usePt && !x.pt ? `<span class="badge">${esc(t.enOnly)}</span>` : '';
-      return `<a class="card" href="${href}"><span class="ico">${svg(x.icon)}</span><span><h3>${esc(name)}</h3><p>${esc(desc)}</p>${badge}</span></a>`;
+      const [name, desc] = toolText(x);
+      const badge = usePt() && !x.pt ? `<span class="badge">${esc(t.enOnly)}</span>` : '';
+      return `<a class="card" href="#/${x.path}"><span class="ico">${svg(x.icon)}</span><span><h3>${esc(name)}</h3><p>${esc(desc)}</p>${badge}</span></a>`;
     }).join('');
     return `<section class="group"><h2 class="group-title">${esc(t.cat[c])}</h2><div class="grid">${cards}</div></section>`;
   }).join('');
@@ -286,10 +418,20 @@ function render(){
   $('empty').hidden = !!groups;
 }
 
-document.querySelector('.lang').addEventListener('click', e => {
+document.querySelectorAll('.lang').forEach(g => g.addEventListener('click', e => {
   const b = e.target.closest('button[data-lang]');
   if (b && b.dataset.lang !== lang) setLang(b.dataset.lang);
-});
+}));
+$('menuBtn').innerHTML = btnSvg('menu');
+document.querySelector('.home-btn').innerHTML = btnSvg('home');
+$('closeBtn').innerHTML = btnSvg('close');
+$('menuBtn').addEventListener('click', () => setMenu(!$('viewer').classList.contains('open')));
+$('closeBtn').addEventListener('click', () => setMenu(false));
+$('backdrop').addEventListener('click', () => setMenu(false));
+$('nav').addEventListener('click', e => { if (e.target.closest('.nav-item')) setMenu(false); });
+$('navSearch').addEventListener('input', renderNav);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+window.addEventListener('hashchange', route);
 $('chips').addEventListener('click', e => {
   const b = e.target.closest('.chip');
   if (!b) return;
@@ -299,9 +441,9 @@ $('chips').addEventListener('click', e => {
 });
 $('search').addEventListener('input', render);
 
-applyText();
 renderChips();
 render();
+route();
 </script>
 </body>
 </html>

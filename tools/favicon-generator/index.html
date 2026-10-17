@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Favicon and app icon generator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='7' y='7' width='18' height='18' transform='rotate(45 16 16)' fill='%233f6fa8' stroke='%23e7eaf0' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=IBM+Plex+Mono:wght@400;500;700&family=Playfair+Display:wght@400..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    color-scheme:dark;
+    --bg:#0d0f14; --panel:#14171f; --panel-edge:#232732;
+    --blue:#3f6fa8; --blue2:#5c7f9e; --steel:#7c8698;
+    --ink:#e7eaf0; --ink-soft:#727c8c; --line:#252a35;
+    --danger:#c77a7a; --ok:#7fa88a; --warn:#c9a86a;
+    --font-ui:'Space Grotesk', system-ui, sans-serif;
+    --font-display:'Playfair Display', Georgia, serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  html{ scroll-padding-top:env(safe-area-inset-top,0px); height:100%; }
+  *{ box-sizing:border-box; }
+  [hidden]{ display:none !important; }
+  body{ margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:var(--font-ui); display:flex; flex-direction:column; overflow:hidden; }
+  header{ padding:18px 30px; border-bottom:4px double var(--blue2); display:flex; align-items:center; gap:16px; flex-wrap:wrap; flex:none; }
+  header h1{ margin:0; font-family:var(--font-display); font-weight:800; font-size:1.5rem; letter-spacing:.02em; }
+  .count{ font-size:.72rem; color:var(--blue2); letter-spacing:.06em; }
+  .head-actions{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  header button.generate{ width:auto; padding:11px 18px; }
+
+  .app{ display:flex; flex:1; min-height:0; }
+  .stage{ flex:1 1 auto; min-width:0; padding:26px; display:flex; border-right:1px solid var(--line); }
+  .rail-frame{ position:relative; flex:1; display:flex; min-width:0; min-height:0; }
+  .rail-frame::before, .rail-frame::after{ content:''; position:absolute; pointer-events:none; z-index:2; }
+  .rail-frame::before{ inset:8px; border:1px solid rgba(231,234,240,.6); }
+  .rail-frame::after{ inset:13px; border:1px solid rgba(92,127,158,.35); }
+  .rail-d{ position:absolute; width:10px; height:10px; z-index:3; background:var(--blue); border:2px solid var(--bg); transform:translate(-50%,-50%) rotate(45deg); box-shadow:0 0 0 1px rgba(231,234,240,.5); }
+  .rail-d.tl{top:8px; left:8px;} .rail-d.tr{top:8px; left:calc(100% - 8px);}
+  .rail-d.bl{top:calc(100% - 8px); left:8px;} .rail-d.br{top:calc(100% - 8px); left:calc(100% - 8px);}
+  .preview{ flex:1; margin:22px; padding:16px 18px 30px; overflow:auto; min-width:0; min-height:0; position:relative; z-index:4; display:flex; flex-direction:column; gap:32px; }
+  .preview.drag{ outline:1px dashed var(--blue2); outline-offset:-6px; }
+
+  .group-title{ display:flex; align-items:center; gap:10px; text-transform:uppercase; letter-spacing:.26em; font-size:.66rem; color:var(--ink-soft); margin-bottom:14px; }
+  .group-title::before{ content:''; width:6px; height:6px; background:var(--blue); transform:rotate(45deg); flex:none; }
+  .group-title::after{ content:''; flex:1; height:3px; border-top:1px solid var(--blue); border-bottom:1px solid var(--blue2); }
+  .hint{ font-size:.7rem; color:var(--ink-soft); line-height:1.5; margin-top:8px; }
+  .checker{ background:repeating-conic-gradient(#171a22 0 25%, #12151b 0 50%) 0 0/12px 12px; }
+
+  /* Hero: small sizes */
+  .hero{ display:grid; grid-template-columns:auto 1fr; gap:28px; align-items:start; }
+  .zoom-box{ display:flex; gap:18px; align-items:flex-end; }
+  .zoom-box figure{ margin:0; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .zoom-box canvas{ image-rendering:pixelated; image-rendering:crisp-edges; border:1px solid var(--line); display:block; }
+  figcaption{ font-size:.68rem; color:var(--ink-soft); letter-spacing:.04em; text-align:center; }
+  figcaption code{ font-family:var(--font-mono); color:#8fb0d6; }
+  .real-row{ display:flex; gap:22px; align-items:flex-end; flex-wrap:wrap; padding:18px; border:1px solid var(--line); }
+  .real-row figure{ margin:0; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .real-row canvas{ display:block; }
+  .on-light{ background:#fff; } .on-dark{ background:#1b1d22; }
+  .duo{ display:flex; gap:0; }
+  .duo > div{ padding:16px 18px; display:flex; gap:18px; align-items:flex-end; }
+
+  /* Mocks */
+  .mocks{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:22px; }
+  .mock-card{ border:1px solid var(--line); background:var(--panel); padding:14px; box-shadow:inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--panel-edge); }
+  .mock-card h3{ margin:0 0 12px; font-size:.68rem; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); }
+  .tabs{ font-family:system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:12px; }
+  .tabbar{ display:flex; align-items:flex-end; gap:2px; padding:8px 8px 0; }
+  .tab{ display:flex; align-items:center; gap:8px; padding:8px 12px; width:170px; border-radius:8px 8px 0 0; }
+  .tab canvas{ width:16px; height:16px; flex:none; display:block; }
+  .tab span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tab .gen{ width:16px; height:16px; border-radius:50%; flex:none; }
+  .tabs.light .tabbar{ background:#dfe3e8; } .tabs.light .tab.on{ background:#fff; color:#14171c; } .tabs.light .tab.off{ color:#4a515c; } .tabs.light .tab .gen{ background:#b9c0c9; }
+  .tabs.dark .tabbar{ background:#1d1f24; } .tabs.dark .tab.on{ background:#33363c; color:#eef0f3; } .tabs.dark .tab.off{ color:#a7adb5; } .tabs.dark .tab .gen{ background:#4b5059; }
+  .urlbar{ height:28px; display:flex; align-items:center; padding:0 12px; font-size:11.5px; }
+  .tabs.light .urlbar{ background:#fff; color:#5a6270; border-bottom:1px solid #e3e6ea; }
+  .tabs.dark .urlbar{ background:#33363c; color:#a7adb5; }
+  .tabs + .tabs{ margin-top:10px; }
+
+  .home{ width:100%; padding:20px 18px 18px; background:linear-gradient(160deg, #3b4a66, #1d2433 60%, #2c2238); display:grid; grid-template-columns:repeat(4, 1fr); gap:16px 10px; font-family:system-ui, -apple-system, sans-serif; }
+  .home .app-i{ display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .home .ic{ width:56px; height:56px; border-radius:13px; background:rgba(255,255,255,.18); overflow:hidden; }
+  .home canvas.ic{ display:block; }
+  .home .lb{ font-size:10.5px; color:#fff; max-width:64px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 2px rgba(0,0,0,.4); }
+  .home .lb.ph{ width:36px; height:6px; background:rgba(255,255,255,.35); border-radius:3px; }
+
+  .masks{ display:flex; gap:16px; flex-wrap:wrap; justify-content:space-between; }
+  .masks figure{ margin:0; display:flex; flex-direction:column; gap:8px; align-items:center; position:relative; }
+  .masks .mk{ width:76px; height:76px; position:relative; background:#2a3140; }
+  .masks .mk canvas{ width:76px; height:76px; display:block; }
+  .masks .ring{ position:absolute; inset:0; pointer-events:none; }
+  .masks .ring::after{ content:''; position:absolute; inset:10%; border-radius:50%; border:1px dashed rgba(255,255,255,.85); box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+  .mk.circle{ border-radius:50%; overflow:hidden; } .mk.squircle{ border-radius:32%; overflow:hidden; }
+  .mk.rounded{ border-radius:16%; overflow:hidden; } .mk.leaf{ border-radius:50% 50% 50% 12%; overflow:hidden; }
+
+  .serp{ background:#fff; padding:16px; font-family:Arial, Helvetica, sans-serif; color:#202124; }
+  .serp .row{ display:flex; align-items:center; gap:10px; }
+  .serp .fav{ width:28px; height:28px; border-radius:50%; background:#f1f3f4; display:flex; align-items:center; justify-content:center; border:1px solid #e3e6ea; flex:none; }
+  .serp .fav canvas{ width:18px; height:18px; display:block; }
+  .serp .nm{ font-size:14px; }
+  .serp .url{ font-size:12px; color:#4d5156; }
+  .serp .title{ font-size:19px; color:#1a0dab; margin:6px 0 4px; }
+  .serp .desc{ font-size:13px; color:#4d5156; line-height:1.5; }
+
+  .files{ width:100%; border-collapse:collapse; font-size:.78rem; }
+  .files th{ text-align:left; font-weight:500; color:var(--ink-soft); font-size:.68rem; letter-spacing:.06em; padding:10px 12px; border-bottom:1px solid var(--line); background:var(--panel); }
+  .files td{ padding:9px 12px; border-bottom:1px solid var(--line); color:#c3c9d4; vertical-align:middle; }
+  .files tr:last-child td{ border-bottom:none; }
+  .files td code{ font-family:var(--font-mono); font-size:.74rem; color:var(--ink); }
+  .files td.act{ text-align:right; white-space:nowrap; }
+  .tbl-wrap{ overflow-x:auto; border:1px solid var(--line); }
+  pre.snippet{ margin:0; background:var(--panel); border:1px solid var(--line); padding:14px 16px; font-family:var(--font-mono); font-size:.76rem; line-height:1.7; color:#c3c9d4; overflow-x:auto; white-space:pre; }
+  pre.snippet .t{ color:#8fb0d6; } pre.snippet .a{ color:#c9a86a; } pre.snippet .v{ color:#a9cdb2; }
+  .snip-bar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:10px; }
+  .two-col{ display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:28px; }
+  ul.checks{ list-style:none; margin:0; padding:0; }
+  ul.checks li{ display:grid; grid-template-columns:14px 1fr; gap:8px; font-size:.78rem; line-height:1.5; color:#c3c9d4; padding:9px 0; border-top:1px solid var(--line); }
+  ul.checks li:first-child{ border-top:none; padding-top:2px; }
+  ul.checks li::before{ content:''; width:7px; height:7px; transform:rotate(45deg); margin:6px 0 0 3px; background:var(--blue2); }
+  ul.checks li.warn::before{ background:var(--warn); }
+  ul.checks li.ok::before{ background:var(--ok); }
+
+  /* Side */
+  .side{ flex:0 0 380px; min-width:0; padding:26px 26px 30px; display:flex; flex-direction:column; gap:26px; overflow:auto; }
+  .drop{ border:1px dashed var(--line); background:var(--panel); padding:14px; text-align:center; cursor:pointer; font-size:.78rem; color:var(--ink-soft); line-height:1.5; }
+  .drop:hover, .drop.drag{ border-color:var(--blue2); color:var(--ink); }
+  .drop:focus-visible{ outline:1px solid #fff; outline-offset:2px; }
+  .drop b{ color:var(--ink); font-weight:500; }
+  .src-meta{ font-size:.72rem; color:#c3c9d4; margin-top:10px; line-height:1.5; display:flex; gap:10px; align-items:center; }
+  .src-meta .th{ width:44px; height:44px; flex:none; border:1px solid var(--line); background:center/contain no-repeat; }
+  .src-meta code{ font-family:var(--font-mono); font-size:.7rem; color:#8fb0d6; }
+  .fld{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .fld label, .fld .lb{ font-size:.76rem; color:var(--ink); }
+  input[type=text], select{ width:100%; background:var(--panel); border:1px solid var(--line); color:var(--ink); font-family:var(--font-ui); font-size:.84rem; padding:8px 10px; border-radius:0; outline:none; }
+  input[type=text]:focus, select:focus{ border-color:var(--blue2); }
+  select option{ background:var(--panel); }
+  #text{ font-size:1.1rem; text-align:center; }
+  .color-row{ display:flex; gap:8px; align-items:center; }
+  input[type=color]{ width:40px; height:34px; padding:2px; background:var(--panel); border:1px solid var(--line); cursor:pointer; flex:none; }
+  .color-row input[type=text]{ font-family:var(--font-mono); font-size:.78rem; }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row-val{ display:flex; justify-content:space-between; font-size:.76rem; color:#c3c9d4; margin-top:12px; }
+  .row-val .v{ color:var(--blue2); font-size:.7rem; font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; -webkit-appearance:none; appearance:none; height:2px; background:var(--line); outline:none; margin:10px 0 2px; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:13px; height:13px; background:var(--blue); border:2px solid var(--bg); box-shadow:0 0 0 1px var(--blue2); transform:rotate(45deg); cursor:pointer; }
+  input[type=range]::-moz-range-thumb{ width:11px; height:11px; background:var(--blue); border:2px solid var(--bg); box-shadow:0 0 0 1px var(--blue2); transform:rotate(45deg); cursor:pointer; border-radius:0; }
+  input[type=range]:focus-visible::-webkit-slider-thumb{ box-shadow:0 0 0 2px #fff; }
+  .sub{ font-size:.7rem; color:var(--ink-soft); margin:14px 0 8px; letter-spacing:.04em; }
+  .check{ display:flex; align-items:flex-start; gap:9px; font-size:.8rem; color:var(--ink-soft); cursor:pointer; line-height:1.35; }
+  .check input{ accent-color:var(--blue); width:14px; height:14px; margin:2px 0 0; flex:none; }
+  .check:has(input:checked){ color:var(--ink); }
+
+  button.tool{
+    --c:var(--blue2);
+    border:1px solid var(--line); background:
+      linear-gradient(var(--c),var(--c)) top left/8px 1px no-repeat,
+      linear-gradient(var(--c),var(--c)) top left/1px 8px no-repeat,
+      linear-gradient(var(--c),var(--c)) top right/8px 1px no-repeat,
+      linear-gradient(var(--c),var(--c)) top right/1px 8px no-repeat,
+      linear-gradient(var(--c),var(--c)) bottom left/8px 1px no-repeat,
+      linear-gradient(var(--c),var(--c)) bottom left/1px 8px no-repeat,
+      linear-gradient(var(--c),var(--c)) bottom right/8px 1px no-repeat,
+      linear-gradient(var(--c),var(--c)) bottom right/1px 8px no-repeat,
+      var(--panel);
+    box-shadow:inset 0 0 0 3px var(--panel), inset 0 0 0 4px var(--panel-edge);
+    color:var(--ink); font-family:var(--font-ui); font-size:.72rem; letter-spacing:.04em; padding:10px 6px; cursor:pointer;
+  }
+  button.tool:hover{ --c:#fff; }
+  button.tool:focus-visible{ outline:1px solid #fff; outline-offset:2px; }
+  button.tool.active{ --c:var(--blue); background-color:rgba(63,111,168,.18); color:#fff; }
+  .seg{ display:grid; gap:6px; }
+  .seg.c2{ grid-template-columns:repeat(2,1fr); } .seg.c3{ grid-template-columns:repeat(3,1fr); }
+  button.generate{ width:100%; background:var(--blue); border:1px solid var(--blue2); color:#fff; font-family:var(--font-ui); font-size:.72rem; text-transform:uppercase; letter-spacing:.2em; padding:14px 10px; cursor:pointer; box-shadow:inset 0 0 0 3px var(--blue), inset 0 0 0 4px rgba(231,234,240,.35); }
+  button.generate:hover{ background:#4a7cb8; }
+  button.generate:focus-visible{ outline:1px solid #fff; outline-offset:2px; }
+  button.generate:disabled{ opacity:.45; cursor:not-allowed; }
+  button.mini{ background:transparent; border:1px solid var(--line); color:var(--ink-soft); font-family:var(--font-ui); font-size:.66rem; letter-spacing:.05em; padding:5px 9px; cursor:pointer; white-space:nowrap; }
+  button.mini:hover{ color:var(--ink); border-color:var(--blue2); }
+  button.mini.done{ color:var(--ok); border-color:var(--ok); }
+  button.mini:focus-visible{ outline:1px solid #fff; outline-offset:2px; }
+
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:30; background:var(--panel); border:1px solid var(--blue2); color:var(--ink); font-size:.76rem; padding:10px 16px; max-width:90vw; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .toast.show{ opacity:1; } .toast.err{ border-color:var(--danger); color:#e3b4b4; }
+
+  @media (max-width:1200px){ .hero, .two-col{ grid-template-columns:1fr; } }
+  @media (max-width:860px){
+    body{ height:auto; overflow:auto; }
+    .app{ flex-direction:column; }
+    .stage{ border-right:none; border-bottom:1px solid var(--line); padding:14px; }
+    .preview{ margin:22px 10px; overflow:visible; padding:10px 6px 24px; }
+    .side{ flex:none; padding:24px 20px; overflow:visible; }
+    header{ padding:16px 20px; }
+    .head-actions{ margin-left:0; width:100%; }
+    .head-actions > *{ flex:1; }
+    .duo{ flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Favicon and app icons</h1>
+  <span class="count" id="count"></span>
+  <div class="head-actions">
+    <button class="generate" id="btnZip">Download all files</button>
+  </div>
+</header>
+
+<div class="app">
+  <div class="stage">
+    <div class="rail-frame">
+      <div class="rail-d tl"></div><div class="rail-d tr"></div>
+      <div class="rail-d bl"></div><div class="rail-d br"></div>
+      <div class="preview" id="preview">
+
+        <section>
+          <div class="group-title">At the size people actually see it</div>
+          <div class="hero">
+            <div class="zoom-box">
+              <figure><canvas id="z16" width="16" height="16" style="width:128px;height:128px"></canvas><figcaption><code>16 px</code> enlarged 8×</figcaption></figure>
+              <figure><canvas id="z32" width="32" height="32" style="width:128px;height:128px"></canvas><figcaption><code>32 px</code> enlarged 4×</figcaption></figure>
+            </div>
+            <div>
+              <div class="duo">
+                <div class="on-light" id="realLight"></div>
+                <div class="on-dark" id="realDark"></div>
+              </div>
+              <div class="hint">Real size on a light and a dark background. If you cannot tell what the 16 px version is at a glance, simplify: fewer letters, thicker strokes, less detail.</div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="group-title">In context</div>
+          <div class="mocks">
+            <div class="mock-card">
+              <h3>Browser tabs</h3>
+              <div class="tabs light"><div class="tabbar"><div class="tab on"><canvas data-fav="32"></canvas><span data-title></span></div><div class="tab off"><span class="gen"></span><span>Another site</span></div></div><div class="urlbar" data-url></div></div>
+              <div class="tabs dark"><div class="tabbar"><div class="tab on"><canvas data-fav="32"></canvas><span data-title></span></div><div class="tab off"><span class="gen"></span><span>Another site</span></div></div><div class="urlbar" data-url></div></div>
+            </div>
+            <div class="mock-card">
+              <h3>Phone home screen</h3>
+              <div class="home" id="home"></div>
+            </div>
+            <div class="mock-card">
+              <h3>Android icon shapes</h3>
+              <div class="masks" id="masks"></div>
+              <label class="check" style="margin-top:12px"><input type="checkbox" id="showSafe" checked> Show the safe zone</label>
+              <div class="hint">Android crops the maskable icon to the shape the phone uses. Everything important must stay inside the dashed circle.</div>
+            </div>
+            <div class="mock-card">
+              <h3>Search result</h3>
+              <div class="serp"><div class="row"><div class="fav"><canvas data-fav="32"></canvas></div><div><div class="nm" data-title></div><div class="url" data-url></div></div></div>
+                <div class="title" data-title></div><div class="desc">This is where the page description appears. Search engines show the favicon next to the site name.</div></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="two-col">
+          <section>
+            <div class="group-title">Files</div>
+            <div class="tbl-wrap"><table class="files"><thead><tr><th>File</th><th>Size</th><th>Used by</th><th></th></tr></thead><tbody id="files"></tbody></table></div>
+          </section>
+          <section>
+            <div class="group-title">Review</div>
+            <ul class="checks" id="checks"></ul>
+          </section>
+        </div>
+
+        <section>
+          <div class="group-title">Code for the site</div>
+          <div class="snip-bar"><span class="hint" style="margin:0">Paste inside the <code style="font-family:var(--font-mono)">&lt;head&gt;</code> of every page and upload the files to the root of the site.</span><button class="mini" id="btnSnip">Copy code</button></div>
+          <pre class="snippet" id="snippet"></pre>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div>
+      <div class="group-title">Source</div>
+      <div class="seg c2" id="modeSeg">
+        <button class="tool" data-v="text">Letters or emoji</button>
+        <button class="tool" data-v="image">Logo file</button>
+      </div>
+
+      <div id="textCtl" style="margin-top:14px">
+        <div class="fld"><label for="text">Text</label><input type="text" id="text" maxlength="4" autocomplete="off"></div>
+        <div class="two">
+          <div class="fld"><label for="font">Typeface</label><select id="font"></select></div>
+          <div class="fld"><label for="weight">Weight</label><select id="weight"><option value="400">Regular</option><option value="500">Medium</option><option value="700">Bold</option><option value="900">Black</option></select></div>
+        </div>
+        <div class="fld"><label>Text color</label><div class="color-row"><input type="color" id="tcolorP"><input type="text" id="tcolor" maxlength="7"></div></div>
+        <div class="row-val"><label for="tsize">Text size</label><span class="v" id="tsizeV"></span></div>
+        <input type="range" id="tsize" min="30" max="100" step="1">
+        <div class="row-val"><label for="ty">Move up or down</label><span class="v" id="tyV"></span></div>
+        <input type="range" id="ty" min="-20" max="20" step="1">
+      </div>
+
+      <div id="imgCtl" style="margin-top:14px" hidden>
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Upload logo"><b>Choose a logo</b><br>SVG or PNG with transparency works best</div>
+        <input type="file" id="fileIn" accept="image/png,image/svg+xml,image/jpeg,image/webp" hidden>
+        <div class="src-meta" id="srcMeta" hidden></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="group-title">Favicon</div>
+      <div class="sub" style="margin-top:0">Background</div>
+      <div class="seg c2" id="favBgSeg">
+        <button class="tool" data-v="color">Color</button>
+        <button class="tool" data-v="none">Transparent</button>
+      </div>
+      <div id="favColorRow" class="fld" style="margin-top:10px"><div class="color-row"><input type="color" id="favColorP"><input type="text" id="favColor" maxlength="7" aria-label="Favicon background color"></div></div>
+      <div class="sub">Shape</div>
+      <div class="seg c3" id="shapeSeg">
+        <button class="tool" data-v="square">Square</button>
+        <button class="tool" data-v="rounded">Rounded</button>
+        <button class="tool" data-v="circle">Circle</button>
+      </div>
+      <div class="row-val"><label for="pad">Inner margin</label><span class="v" id="padV"></span></div>
+      <input type="range" id="pad" min="0" max="30" step="1">
+    </div>
+
+    <div>
+      <div class="group-title">App icons</div>
+      <div class="fld"><label>Background</label><div class="color-row"><input type="color" id="appBgP"><input type="text" id="appBg" maxlength="7" aria-label="App icon background"></div></div>
+      <div class="row-val"><label for="appPad">Inner margin</label><span class="v" id="appPadV"></span></div>
+      <input type="range" id="appPad" min="0" max="30" step="1">
+      <div class="row-val"><label for="maskSize">Logo size in the maskable icon</label><span class="v" id="maskSizeV"></span></div>
+      <input type="range" id="maskSize" min="40" max="80" step="1">
+      <div class="hint">Phones round the corners of app icons themselves, so these files are full squares with a solid background.</div>
+    </div>
+
+    <div>
+      <div class="group-title">Site</div>
+      <div class="fld"><label for="name">Site name</label><input type="text" id="name" placeholder="Acme Studio"></div>
+      <div class="two">
+        <div class="fld"><label for="short">Short name</label><input type="text" id="short" maxlength="14" placeholder="Acme"></div>
+        <div class="fld"><label for="domain">Domain</label><input type="text" id="domain" placeholder="acme.com"></div>
+      </div>
+      <div class="fld"><label>Browser theme color</label><div class="color-row"><input type="color" id="themeP"><input type="text" id="theme" maxlength="7" aria-label="Theme color"></div></div>
+      <div class="hint">The short name appears under the icon on phones. The theme color tints the browser bar on mobile. Settings are saved in this browser; the logo file is not.</div>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const FONTS = {
+  'Space Grotesk':'"Space Grotesk", system-ui, sans-serif',
+  'Playfair Display':'"Playfair Display", Georgia, serif',
+  'IBM Plex Mono':'"IBM Plex Mono", ui-monospace, monospace',
+  'System sans':'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+  'System serif':'Georgia, "Times New Roman", serif'
+};
+
+const KEY = 'favicon-gen:v1';
+let st = {
+  mode:'text', text:'A', font:'Playfair Display', weight:'900', tcolor:'#ffffff', tsize:70, ty:0,
+  favBg:'color', favColor:'#3f6fa8', shape:'rounded', pad:4,
+  appBg:'#3f6fa8', appPad:16, maskSize:56,
+  name:'', short:'', domain:'', theme:'#0d0f14', showSafe:true
+};
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) st = { ...st, ...s }; } catch(_) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(_) {} };
+let src = null; // { el, w, h, svg, name, url }
+
+/* ---------- Drawing ---------- */
+function shapePath(ctx, S, shape){
+  ctx.beginPath();
+  if (shape === 'circle'){ ctx.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2); return; }
+  if (shape === 'rounded'){
+    const r = S * .22;
+    ctx.moveTo(r, 0); ctx.arcTo(S, 0, S, S, r); ctx.arcTo(S, S, 0, S, r); ctx.arcTo(0, S, 0, 0, r); ctx.arcTo(0, 0, S, 0, r); ctx.closePath(); return;
+  }
+  ctx.rect(0, 0, S, S);
+}
+function drawContent(ctx, x, y, w, h){
+  if (st.mode === 'image'){
+    if (!src) return;
+    const k = Math.min(w / src.w, h / src.h);
+    const dw = src.w * k, dh = src.h * k;
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src.el, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    return;
+  }
+  const text = st.text || '';
+  if (!text) return;
+  let fs = h * st.tsize / 100;
+  const fam = FONTS[st.font] || FONTS['System sans'];
+  ctx.font = `${st.weight} ${fs}px ${fam}`;
+  let m = ctx.measureText(text);
+  let tw = (m.actualBoundingBoxRight || m.width) + (m.actualBoundingBoxLeft || 0);
+  if (tw > w){ fs *= w / tw; ctx.font = `${st.weight} ${fs}px ${fam}`; m = ctx.measureText(text); tw = (m.actualBoundingBoxRight || m.width) + (m.actualBoundingBoxLeft || 0); }
+  const asc = m.actualBoundingBoxAscent ?? fs * .72, desc = m.actualBoundingBoxDescent ?? 0;
+  ctx.fillStyle = st.tcolor; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const tx = x + w / 2 - tw / 2 + (m.actualBoundingBoxLeft || 0);
+  const ty = y + h / 2 + (asc - desc) / 2 + st.ty / 100 * h;
+  ctx.fillText(text, tx, ty);
+}
+function renderKind(kind, S){
+  const c = document.createElement('canvas'); c.width = S; c.height = S;
+  const ctx = c.getContext('2d');
+  if (kind === 'fav'){
+    if (st.favBg === 'color'){ shapePath(ctx, S, st.shape); ctx.fillStyle = st.favColor; ctx.fill(); }
+    const p = S * st.pad / 100; drawContent(ctx, p, p, S - 2 * p, S - 2 * p);
+  } else if (kind === 'app'){
+    ctx.fillStyle = st.appBg; ctx.fillRect(0, 0, S, S);
+    const p = S * st.appPad / 100; drawContent(ctx, p, p, S - 2 * p, S - 2 * p);
+  } else {
+    ctx.fillStyle = st.appBg; ctx.fillRect(0, 0, S, S);
+    const cs = S * st.maskSize / 100; drawContent(ctx, (S - cs) / 2, (S - cs) / 2, cs, cs);
+  }
+  return c;
+}
+// Small sizes: draw big, then halve step by step for clean downscaling
+function render(kind, size){
+  if (size >= 128) return renderKind(kind, size);
+  let cur = renderKind(kind, 512);
+  while (cur.width / 2 >= size * 2){
+    const n = document.createElement('canvas'); n.width = n.height = cur.width / 2;
+    const x = n.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cur, 0, 0, n.width, n.height); cur = n;
+  }
+  const out = document.createElement('canvas'); out.width = out.height = size;
+  const x = out.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cur, 0, 0, size, size);
+  return out;
+}
+
+/* ---------- Files ---------- */
+function fileList(){
+  const f = [
+    { name:'favicon.ico', kind:'ico', dims:'16, 32, 48', use:'Every browser, the classic fallback' },
+    { name:'favicon-16x16.png', kind:'fav', size:16, dims:'16 × 16', use:'Tools that ask for a PNG' },
+    { name:'favicon-32x32.png', kind:'fav', size:32, dims:'32 × 32', use:'Tools that ask for a PNG' },
+    { name:'apple-touch-icon.png', kind:'app', size:180, dims:'180 × 180', use:'iPhone and iPad home screen' },
+    { name:'icon-192.png', kind:'app', size:192, dims:'192 × 192', use:'Android home screen' },
+    { name:'icon-512.png', kind:'app', size:512, dims:'512 × 512', use:'Android splash screen and app stores of web apps' },
+    { name:'icon-maskable-512.png', kind:'mask', size:512, dims:'512 × 512', use:'Android adaptive shapes' },
+    { name:'site.webmanifest', kind:'manifest', dims:'text', use:'Tells phones which icons to use' }
+  ];
+  if (st.mode === 'image' && src && src.svg) f.splice(1, 0, { name:'favicon.svg', kind:'svg', dims:'vector', use:'Modern browsers, sharp at any size' });
+  return f;
+}
+const toBlob = (c) => new Promise(res => c.toBlob(res, 'image/png'));
+async function makeIco(){
+  const sizes = [16, 32, 48];
+  const pngs = [];
+  for (const s of sizes) pngs.push(new Uint8Array(await (await toBlob(render('fav', s))).arrayBuffer()));
+  const head = new DataView(new ArrayBuffer(6 + 16 * sizes.length));
+  head.setUint16(0, 0, true); head.setUint16(2, 1, true); head.setUint16(4, sizes.length, true);
+  let off = 6 + 16 * sizes.length;
+  sizes.forEach((s, i) => {
+    const o = 6 + i * 16;
+    head.setUint8(o, s); head.setUint8(o + 1, s); head.setUint8(o + 2, 0); head.setUint8(o + 3, 0);
+    head.setUint16(o + 4, 1, true); head.setUint16(o + 6, 32, true);
+    head.setUint32(o + 8, pngs[i].length, true); head.setUint32(o + 12, off, true);
+    off += pngs[i].length;
+  });
+  return new Blob([head, ...pngs], { type:'image/x-icon' });
+}
+function manifest(){
+  return JSON.stringify({
+    name:st.name || st.short || 'My site', short_name:st.short || st.name || 'Site',
+    icons:[
+      { src:'/icon-192.png', sizes:'192x192', type:'image/png' },
+      { src:'/icon-512.png', sizes:'512x512', type:'image/png' },
+      { src:'/icon-maskable-512.png', sizes:'512x512', type:'image/png', purpose:'maskable' }
+    ],
+    theme_color:st.theme, background_color:st.appBg, display:'standalone'
+  }, null, 2);
+}
+async function fileBlob(f){
+  if (f.kind === 'ico') return makeIco();
+  if (f.kind === 'manifest') return new Blob([manifest()], { type:'application/manifest+json' });
+  if (f.kind === 'svg') return new Blob([src.svg], { type:'image/svg+xml' });
+  return toBlob(render(f.kind, f.size));
+}
+function snippetText(){
+  const L = ['<link rel="icon" href="/favicon.ico" sizes="32x32">'];
+  if (st.mode === 'image' && src && src.svg) L.push('<link rel="icon" href="/favicon.svg" type="image/svg+xml">');
+  L.push('<link rel="apple-touch-icon" href="/apple-touch-icon.png">');
+  L.push('<link rel="manifest" href="/site.webmanifest">');
+  L.push(`<meta name="theme-color" content="${st.theme}">`);
+  return L.join('\n');
+}
+function snippetHtml(){
+  return esc(snippetText()).replace(/&lt;(\/?)([a-z]+)/g, '&lt;$1<span class="t">$2</span>').replace(/([a-z-]+)=&quot;([^&]*)&quot;/g, '<span class="a">$1</span>=&quot;<span class="v">$2</span>&quot;');
+}
+
+/* ZIP (stored) */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files){
+  const enc = new TextEncoder(); const parts = [], central = []; let offset = 0;
+  const d = new Date(); const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1); const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  for (const f of files){
+    const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, name.length, true);
+    parts.push(lh, name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, name.length, true); ch.setUint32(42, offset, true);
+    central.push(ch, name); offset += 30 + name.length + data.length;
+  }
+  const cSize = central.reduce((a, p) => a + p.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, cSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end], { type:'application/zip' });
+}
+function saveBlob(blob, name){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); }
+
+/* ---------- Preview ---------- */
+function paintInto(canvas, source, cssSize){
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssSize * dpr); canvas.height = Math.round(cssSize * dpr);
+  canvas.style.width = cssSize + 'px'; canvas.style.height = cssSize + 'px';
+  const x = canvas.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(source, 0, 0, canvas.width, canvas.height);
+}
+function renderPreview(){
+  const f16 = render('fav', 16), f32 = render('fav', 32), f48 = render('fav', 48);
+  const app = renderKind('app', 180), mask = renderKind('mask', 512);
+  for (const [id, c] of [['#z16', f16], ['#z32', f32]]){ const z = $(id); z.width = c.width; z.height = c.height; const x = z.getContext('2d'); x.clearRect(0, 0, z.width, z.height); x.drawImage(c, 0, 0); }
+  for (const box of ['#realLight', '#realDark']){
+    const el = $(box); el.innerHTML = '';
+    for (const [c, label] of [[f16, '16'], [f32, '32'], [f48, '48']]){
+      const fig = document.createElement('figure'); fig.style.margin = '0'; fig.style.display = 'flex'; fig.style.flexDirection = 'column'; fig.style.alignItems = 'center'; fig.style.gap = '6px';
+      const cv = document.createElement('canvas'); cv.width = c.width; cv.height = c.height; cv.style.width = c.width + 'px'; cv.style.height = c.height + 'px'; cv.getContext('2d').drawImage(c, 0, 0);
+      const cap = document.createElement('figcaption'); cap.textContent = label + ' px'; cap.style.color = box === '#realLight' ? '#5a6270' : '#9aa0a8';
+      fig.append(cv, cap); el.appendChild(fig);
+    }
+  }
+  document.querySelectorAll('canvas[data-fav]').forEach(cv => paintInto(cv, f32, cv.closest('.serp') ? 18 : 16));
+  const title = st.name || 'Your site';
+  document.querySelectorAll('[data-title]').forEach(el => el.textContent = title);
+  document.querySelectorAll('[data-url]').forEach(el => el.textContent = 'https://' + (st.domain || 'yoursite.com'));
+  // home screen
+  const home = $('#home'); home.innerHTML = '';
+  for (let i = 0; i < 12; i++){
+    const d = document.createElement('div'); d.className = 'app-i';
+    if (i === 5){ const cv = document.createElement('canvas'); cv.className = 'ic'; paintInto(cv, app, 56); d.appendChild(cv); const lb = document.createElement('span'); lb.className = 'lb'; lb.textContent = st.short || st.name || 'Site'; d.appendChild(lb); }
+    else { d.innerHTML = '<span class="ic"></span><span class="lb ph"></span>'; }
+    home.appendChild(d);
+  }
+  // masks
+  $('#masks').innerHTML = [['circle','Circle'],['squircle','Squircle'],['rounded','Rounded square'],['leaf','Teardrop']].map(([k, l]) => `<figure><div class="mk ${k}"><canvas></canvas>${st.showSafe ? '<span class="ring"></span>' : ''}</div><figcaption>${l}</figcaption></figure>`).join('');
+  $('#masks').querySelectorAll('canvas').forEach(cv => paintInto(cv, mask, 76));
+  renderFiles(); renderChecks();
+  $('#snippet').innerHTML = snippetHtml();
+  $('#count').textContent = `${fileList().length} files`;
+  $('#btnZip').disabled = st.mode === 'image' && !src;
+  save();
+}
+let raf = 0;
+const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(renderPreview); };
+
+function renderFiles(){
+  $('#files').innerHTML = fileList().map((f, i) => `<tr><td><code>${f.name}</code></td><td>${f.dims}</td><td>${f.use}</td><td class="act"><button class="mini" data-dl="${i}" ${st.mode === 'image' && !src ? 'disabled' : ''}>Download</button></td></tr>`).join('');
+}
+$('#files').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-dl]'); if (!b) return;
+  const f = fileList()[+b.dataset.dl];
+  saveBlob(await fileBlob(f), f.name);
+});
+
+function luminance(hex){
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+  const n = parseInt(m[1], 16); const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+}
+function contrast(a, b){ const la = luminance(a), lb = luminance(b); if (la === null || lb === null) return null; return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05); }
+function renderChecks(){
+  const c = [];
+  if (st.mode === 'text'){
+    const len = [...(st.text || '')].length;
+    if (!len) c.push(['warn','Type one or two letters, or an emoji.']);
+    else if (len > 2) c.push(['warn', `${len} characters are hard to read at 16 px. One or two letters usually work best.`]);
+    else c.push(['ok','One or two characters stay readable at small sizes.']);
+    if (st.favBg === 'color'){ const r = contrast(st.tcolor, st.favColor); if (r !== null && r < 3) c.push(['warn', `Low contrast between text and background (${r.toFixed(1)}:1). Aim for at least 3:1 so the letter stays visible in a tab.`]); }
+    const ra = contrast(st.tcolor, st.appBg); if (ra !== null && ra < 3) c.push(['warn', `The app icon has low contrast between text and background (${ra.toFixed(1)}:1).`]);
+    if (st.font === 'Space Grotesk' || st.font === 'Playfair Display' || st.font === 'IBM Plex Mono') c.push(['info','The typeface is drawn into the files, so visitors do not need it installed.']);
+  } else {
+    if (!src) c.push(['warn','Upload a logo to generate the files.']);
+    else {
+      if (src.svg) c.push(['ok','SVG source: a sharp favicon.svg is included for modern browsers.']);
+      else if (Math.min(src.w, src.h) < 512) c.push(['warn', `The logo is ${src.w} × ${src.h}. Below 512 pixels the large app icons will look soft. Use an SVG or a larger PNG if you have one.`]);
+      if (Math.abs(src.w / src.h - 1) > .05) c.push(['info','The logo is not square, so it is fitted with empty space around it. A square symbol or monogram usually reads better than a full horizontal logo.']);
+      c.push(['info','A full logo with words rarely reads at 16 px. If yours does not, use only the symbol or the initial.']);
+    }
+  }
+  if (st.favBg === 'none') c.push(['info','Transparent favicon: check both tab previews. Dark artwork disappears on dark browser themes, light artwork on light ones.']);
+  if (st.maskSize > 64) c.push(['warn','The logo in the maskable icon is large and may be cut by round shapes. Keep it inside the dashed circle.']);
+  if (!st.name) c.push(['info','Add the site name: it goes into the manifest and the tab preview.']);
+  $('#checks').innerHTML = c.map(([k, t]) => `<li class="${k}"><span>${esc(t)}</span></li>`).join('');
+}
+
+/* ---------- Controls ---------- */
+$('#font').innerHTML = Object.keys(FONTS).map(f => `<option>${f}</option>`).join('');
+function bindColor(key, picker, text){
+  const p = $(picker), t = $(text);
+  p.value = st[key]; t.value = st[key];
+  p.addEventListener('input', () => { st[key] = p.value; t.value = p.value; schedule(); });
+  t.addEventListener('input', () => { const v = t.value.trim(); if (/^#[0-9a-f]{6}$/i.test(v)){ st[key] = v; p.value = v; schedule(); } });
+}
+bindColor('tcolor', '#tcolorP', '#tcolor');
+bindColor('favColor', '#favColorP', '#favColor');
+bindColor('appBg', '#appBgP', '#appBg');
+bindColor('theme', '#themeP', '#theme');
+function bindRange(key, id, suffix){
+  const el = $('#' + id), v = $('#' + id + 'V');
+  el.value = st[key]; v.textContent = st[key] + suffix;
+  el.addEventListener('input', () => { st[key] = +el.value; v.textContent = st[key] + suffix; schedule(); });
+}
+bindRange('tsize', 'tsize', '%'); bindRange('ty', 'ty', '%'); bindRange('pad', 'pad', '%'); bindRange('appPad', 'appPad', '%'); bindRange('maskSize', 'maskSize', '%');
+for (const k of ['text','name','short','domain']){ const el = $('#' + k); el.value = st[k]; el.addEventListener('input', () => { st[k] = el.value; schedule(); }); }
+$('#font').value = st.font; $('#weight').value = st.weight;
+$('#font').addEventListener('change', async (e) => { st.font = e.target.value; await ensureFont(); schedule(); });
+$('#weight').addEventListener('change', async (e) => { st.weight = e.target.value; await ensureFont(); schedule(); });
+$('#showSafe').checked = st.showSafe;
+$('#showSafe').addEventListener('change', (e) => { st.showSafe = e.target.checked; schedule(); });
+function seg(id, key, after){
+  const el = $(id);
+  const sync = () => el.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.v === st[key]));
+  el.addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; st[key] = b.dataset.v; sync(); after && after(); schedule(); });
+  sync();
+}
+seg('#modeSeg', 'mode', () => syncMode());
+seg('#favBgSeg', 'favBg', () => { $('#favColorRow').hidden = st.favBg !== 'color'; });
+seg('#shapeSeg', 'shape');
+$('#favColorRow').hidden = st.favBg !== 'color';
+function syncMode(){ $('#textCtl').hidden = st.mode !== 'text'; $('#imgCtl').hidden = st.mode !== 'image'; }
+syncMode();
+
+async function ensureFont(){
+  if (!document.fonts || !FONTS[st.font] || st.font.startsWith('System')) return;
+  try { await document.fonts.load(`${st.weight} 64px "${st.font}"`, st.text || 'A'); } catch(_) {}
+}
+
+/* upload */
+async function loadFile(file){
+  if (!file) return;
+  if (!/^image\//.test(file.type)){ toast('Choose an SVG, PNG, JPG or WebP file.', true); return; }
+  try {
+    let svg = null;
+    if (file.type === 'image/svg+xml') svg = await file.text();
+    const url = URL.createObjectURL(file);
+    const el = new Image(); el.src = url; await el.decode();
+    let w = el.naturalWidth, h = el.naturalHeight;
+    if (svg && (!w || !h)){ w = h = 512; }
+    if (src && src.url) URL.revokeObjectURL(src.url);
+    src = { el, w, h, svg, name:file.name, url };
+    st.mode = 'image'; document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('active', b.dataset.v === 'image')); syncMode();
+    $('#srcMeta').hidden = false;
+    $('#srcMeta').innerHTML = `<span class="th checker" style="background-image:url('${url}')"></span><span>${esc(file.name)}<br><code>${svg ? 'vector' : `${w} × ${h}`}</code></span>`;
+    schedule();
+  } catch(_){ toast('This file could not be read.', true); }
+}
+$('#drop').addEventListener('click', () => $('#fileIn').click());
+$('#drop').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $('#fileIn').click(); } });
+$('#fileIn').addEventListener('change', (e) => { loadFile(e.target.files[0]); e.target.value = ''; });
+for (const el of [$('#drop'), $('#preview')]){
+  el.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')){ e.preventDefault(); el.classList.add('drag'); } });
+  el.addEventListener('dragleave', () => el.classList.remove('drag'));
+  el.addEventListener('drop', (e) => { e.preventDefault(); el.classList.remove('drag'); loadFile(e.dataTransfer.files[0]); });
+}
+
+$('#btnSnip').addEventListener('click', async (e) => {
+  const t = snippetText(); let ok = false;
+  try { await navigator.clipboard.writeText(t); ok = true; } catch(_) { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch(__) {} ta.remove(); }
+  const b = e.currentTarget; if (ok){ b.textContent = 'Copied'; b.classList.add('done'); setTimeout(() => { b.textContent = 'Copy code'; b.classList.remove('done'); }, 1400); }
+});
+$('#btnZip').addEventListener('click', async (e) => {
+  const btn = e.currentTarget; btn.disabled = true; const o = btn.textContent; btn.textContent = 'Preparing…';
+  try {
+    const files = [];
+    for (const f of fileList()) files.push({ name:f.name, data:new Uint8Array(await (await fileBlob(f)).arrayBuffer()) });
+    const readme = `How to install\n\n1. Upload every file to the root folder of the site, next to index.html.\n2. Paste this inside the <head> of every page:\n\n${snippetText()}\n\n3. Browsers cache favicons for a long time. To see the change, open the site in a private window.\n`;
+    files.push({ name:'head-code.txt', data:new TextEncoder().encode(readme) });
+    const base = (st.short || st.name || 'site').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'site';
+    saveBlob(makeZip(files), `${base}-icons.zip`);
+    toast(`${files.length} files saved in one .zip, with installation steps.`);
+  } catch(_){ toast('The files could not be created.', true); }
+  finally { btn.disabled = false; btn.textContent = o; }
+});
+
+let toastT;
+function toast(msg, err){ const t = $('#toast'); t.textContent = msg; t.classList.toggle('err', !!err); t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2800); }
+
+(async () => { await ensureFont(); renderPreview(); if (document.fonts) document.fonts.ready.then(schedule); })();
+})();
+</script>
+</body>
+</html>

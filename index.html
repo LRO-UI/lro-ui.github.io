@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LRO-UI Tools</title>
+<meta name="description" content="Free tools that run in your browser. Nothing to install, no sign-up.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='7' y='7' width='18' height='18' transform='rotate(45 16 16)' fill='%233f6fa8' stroke='%23e7eaf0' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Playfair+Display:wght@400..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#0d0f14; --panel:#14171f; --panel-edge:#232732;
+    --blue:#3f6fa8; --blue2:#5c7f9e; --steel:#7c8698;
+    --ink:#e7eaf0; --ink-soft:#8a93a3; --line:#252a35;
+    --warn:#c9a86a;
+    --font-ui:'Space Grotesk', system-ui, sans-serif;
+    --font-display:'Playfair Display', Georgia, serif;
+  }
+  *{ box-sizing:border-box; }
+  [hidden]{ display:none !important; }
+  body{ margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-family:var(--font-ui);
+    padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px); }
+
+  header{ padding:18px 30px; border-bottom:4px double var(--blue2); display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  header h1{ margin:0; font-family:var(--font-display); font-weight:800; font-size:1.5rem; letter-spacing:.02em; display:flex; align-items:center; gap:12px; }
+  header h1::before{ content:''; width:12px; height:12px; background:var(--blue); transform:rotate(45deg); box-shadow:0 0 0 2px var(--bg), 0 0 0 3px rgba(231,234,240,.5); }
+  .lang{ margin-left:auto; display:flex; border:1px solid var(--line); }
+  .lang button{ background:none; border:0; color:var(--ink-soft); font:inherit; font-size:.75rem; letter-spacing:.14em; padding:9px 14px; cursor:pointer; }
+  .lang button + button{ border-left:1px solid var(--line); }
+  .lang button[aria-pressed="true"]{ background:var(--blue); color:var(--ink); }
+  .lang button:focus-visible, .chip:focus-visible, .card:focus-visible, .search:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+  main{ max-width:1180px; margin:0 auto; padding:34px 30px 60px; }
+  .intro{ text-align:center; margin:0 auto 30px; max-width:62ch; }
+  .intro h2{ font-family:var(--font-display); font-weight:700; font-size:clamp(1.6rem,4vw,2.4rem); margin:0 0 10px; }
+  .intro p{ color:var(--ink-soft); line-height:1.6; margin:0; }
+
+  .controls{ display:flex; flex-direction:column; gap:14px; margin-bottom:32px; }
+  .search{ width:100%; max-width:520px; margin:0 auto; background:var(--panel); border:1px solid var(--panel-edge); color:var(--ink);
+    font:inherit; font-size:1rem; padding:13px 16px; }
+  .search::placeholder{ color:var(--ink-soft); }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .chip{ background:none; border:1px solid var(--line); color:var(--ink-soft); font:inherit; font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
+    padding:8px 14px; cursor:pointer; }
+  .chip[aria-pressed="true"]{ border-color:var(--blue2); color:var(--ink); background:rgba(63,111,168,.18); }
+
+  .group{ margin-bottom:36px; }
+  .group-title{ display:flex; align-items:center; gap:10px; text-transform:uppercase; letter-spacing:.26em; font-size:.68rem; color:var(--ink-soft); margin:0 0 16px; font-weight:500; }
+  .group-title::before{ content:''; width:6px; height:6px; background:var(--blue); transform:rotate(45deg); flex:none; }
+  .group-title::after{ content:''; flex:1; height:3px; border-top:1px solid var(--blue); border-bottom:1px solid var(--blue2); }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:16px; }
+  .card{ position:relative; display:flex; gap:14px; align-items:flex-start; padding:18px; background:var(--panel); border:1px solid var(--panel-edge);
+    color:inherit; text-decoration:none; transition:border-color .15s, transform .15s; }
+  .card::before{ content:''; position:absolute; inset:4px; border:1px solid rgba(92,127,158,.22); pointer-events:none; }
+  .card:hover{ border-color:var(--blue2); transform:translateY(-2px); }
+  .ico{ flex:none; width:42px; height:42px; display:grid; place-items:center; border:1px solid var(--blue2); color:var(--blue2); }
+  .ico svg{ width:22px; height:22px; }
+  .card h3{ margin:0 0 6px; font-size:1rem; font-weight:600; }
+  .card p{ margin:0; font-size:.82rem; line-height:1.5; color:var(--ink-soft); }
+  .badge{ display:inline-block; margin-top:9px; font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--warn); border:1px solid rgba(201,168,106,.45); padding:3px 7px; }
+  .empty{ text-align:center; color:var(--ink-soft); padding:40px 0; }
+
+  footer{ border-top:1px solid var(--line); text-align:center; padding:22px 30px; font-size:.75rem; color:var(--ink-soft); }
+  footer a{ color:var(--blue2); }
+
+  @media (max-width:600px){
+    header{ padding:14px 16px; }
+    header h1{ font-size:1.2rem; }
+    main{ padding:24px 16px 48px; }
+    .grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 data-i18n="siteName">LRO-UI Tools</h1>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="en" aria-pressed="true">EN</button>
+    <button type="button" data-lang="pt" aria-pressed="false">PT-BR</button>
+  </div>
+</header>
+
+<main>
+  <section class="intro">
+    <h2 data-i18n="headline">Free tools that run in your browser</h2>
+    <p data-i18n="sub">Nothing to install, no account, no limits. Your files stay on your device.</p>
+  </section>
+
+  <div class="controls">
+    <input class="search" id="search" type="search" autocomplete="off" data-i18n-placeholder="search" placeholder="Search tools">
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div id="list"></div>
+  <p class="empty" id="empty" hidden data-i18n="none">No tools match your search.</p>
+</main>
+
+<footer>
+  <span data-i18n="footer">Made by LRO-UI. Free to use.</span>
+  · <a href="https://github.com/LRO-UI" target="_blank" rel="noopener">GitHub</a>
+</footer>
+
+<script>
+// Interface text. Add a language by adding a block here and a button in the header.
+const UI = {
+  en: {
+    siteName:'LRO-UI Tools',
+    headline:'Free tools that run in your browser',
+    sub:'Nothing to install, no account, no limits. Your files stay on your device.',
+    search:'Search tools', all:'All', none:'No tools match your search.',
+    enOnly:'English only', footer:'Made by LRO-UI. Free to use.',
+    cat:{ design:'Design & color', marketing:'Marketing', docs:'Text & documents', utility:'Utilities', apps:'Apps', games:'Games' }
+  },
+  pt: {
+    siteName:'Ferramentas LRO-UI',
+    headline:'Ferramentas grátis que rodam no seu navegador',
+    sub:'Nada para instalar, sem cadastro, sem limites. Seus arquivos ficam no seu aparelho.',
+    search:'Buscar ferramentas', all:'Todas', none:'Nenhuma ferramenta encontrada.',
+    enOnly:'Só em inglês', footer:'Feito por LRO-UI. Uso gratuito.',
+    cat:{ design:'Design e cor', marketing:'Marketing', docs:'Texto e documentos', utility:'Utilidades', apps:'Apps', games:'Jogos' }
+  }
+};
+
+// Line icons (24x24, stroke). Shared by several tools where it fits.
+const ICON = {
+  palette:'<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1.2"/><circle cx="12" cy="7.5" r="1.2"/><circle cx="16" cy="10" r="1.2"/><path d="M12 21a3 3 0 0 1 0-6h2"/>',
+  drop:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+  gradient:'<rect x="3" y="3" width="18" height="18"/><path d="M3 15l12-12M3 21L21 3M9 21l12-12"/>',
+  contrast:'<circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  star:'<rect x="4" y="4" width="16" height="16"/><path d="M12 7.5l1.4 2.9 3.1.4-2.3 2.2.6 3.1L12 14.6l-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z"/>',
+  type:'<path d="M4 7V4h16v3M9 20h6M12 4v16"/>',
+  resize:'<path d="M14 3h7v7M10 21H3v-7M21 3l-7 7M3 21l7-7"/>',
+  ad:'<rect x="6" y="2" width="12" height="20" rx="2"/><rect x="8.5" y="6" width="7" height="6"/><path d="M8.5 15h7M8.5 18h4"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  qr:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 20h2M20 14v2"/>',
+  pdf:'<path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/>',
+  hash:'<path d="M6 2h9l5 5v15H6z"/><path d="M10 12l-1 7M14 12l-1 7M8.5 14h7M8 17h7"/>',
+  count:'<path d="M4 6h16M4 12h10M4 18h13"/>',
+  compare:'<path d="M4 4h7v16H4zM13 4h7v16h-7z"/><path d="M6 8h3M15 8h3M6 12h3M15 12h3"/>',
+  strip:'<rect x="3" y="5" width="18" height="14"/><path d="M3 15l5-5 4 4 3-3 6 6"/><path d="M4 4l16 16"/>',
+  flow:'<rect x="3" y="3" width="7" height="5"/><rect x="14" y="16" width="7" height="5"/><path d="M12 10.5l2.5 2.5-2.5 2.5-2.5-2.5z"/><path d="M6.5 8v5h3M14.5 13h3v3"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/>',
+  check:'<rect x="3" y="3" width="18" height="18"/><path d="M7 12l3 3 7-7"/>',
+  book:'<path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/>',
+  wheel:'<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>',
+  grid:'<path d="M9 3v18M15 3v18M3 9h18M3 15h18"/><path d="M4.5 4.5l3 3M7.5 4.5l-3 3"/><circle cx="18" cy="18" r="1.6"/>'
+};
+
+// The tool list. path = repo name on GitHub Pages; pt = has a PT-BR/ folder.
+const TOOLS = [
+  { path:'Palette_Generator', cat:'design', icon:'palette', pt:true,
+    en:['Palette Generator','Build color palettes by style and harmony, then download them.'],
+    ptT:['Gerador de Paletas','Crie paletas de cores por estilo e harmonia e baixe o resultado.'] },
+  { path:'Palette_Extractor', cat:'design', icon:'drop', pt:false,
+    en:['Palette Extractor','Pull the main colors out of any image.'],
+    ptT:['Extrator de Paleta','Extraia as cores principais de qualquer imagem.'] },
+  { path:'Gradient-Generator', cat:'design', icon:'gradient', pt:false,
+    en:['Gradient Generator','Linear, mesh and corner gradients with noise and grain, in several sizes.'],
+    ptT:['Gerador de Degradê','Degradês lineares, mesh e de canto, com ruído e granulação, em vários tamanhos.'] },
+  { path:'Contrast_Checker', cat:'design', icon:'contrast', pt:false,
+    en:['Contrast Checker','Check contrast ratios with text, icon and button examples, and compare color pairs.'],
+    ptT:['Verificador de Contraste','Confira a taxa de contraste com exemplos de texto, ícone e botão e compare combinações.'] },
+  { path:'Color_Blindness', cat:'design', icon:'eye', pt:false,
+    en:['Color Blindness Simulator','See images and palettes as people with each type of color blindness do.'],
+    ptT:['Simulador de Daltonismo','Veja imagens e paletas como pessoas com cada tipo de daltonismo veem.'] },
+  { path:'FavIcon_Generator', cat:'design', icon:'star', pt:false,
+    en:['Favicon Generator','Make favicons for your website in every size you need.'],
+    ptT:['Gerador de Favicon','Crie favicons para o seu site em todos os tamanhos necessários.'] },
+  { path:'Casework', cat:'design', icon:'type', pt:false,
+    en:['Casework','A font and text editor.'],
+    ptT:['Casework','Editor de fontes e texto.'] },
+  { path:'Image_Resizer', cat:'design', icon:'resize', pt:false,
+    en:['Image Resizer','Resize images to custom sizes or to social media and ad formats.'],
+    ptT:['Redimensionar Imagens','Redimensione imagens para tamanhos livres ou formatos de redes sociais e anúncios.'] },
+
+  { path:'Ad_Mockup', cat:'marketing', icon:'ad', pt:true,
+    en:['Ad Mockup','Preview ad copy and images in Facebook and Instagram feeds, stories and more.'],
+    ptT:['Mockup de Anúncios','Veja a prévia de copy e imagens em feeds, stories e outros posicionamentos do Facebook e Instagram.'] },
+  { path:'UTM_Builder', cat:'marketing', icon:'link', pt:true,
+    en:['UTM Builder','Build tracked links with channels, variables and parameters.'],
+    ptT:['Gerador de UTM','Monte links rastreáveis com canais, variáveis e parâmetros.'] },
+  { path:'QR-Code_Generator', cat:'marketing', icon:'qr', pt:true,
+    en:['QR Code Generator','QR codes for links, email, Wi-Fi, location and phone. Download as PNG or SVG.'],
+    ptT:['Gerador de QR Code','QR codes para links, e-mail, Wi-Fi, localização e telefone. Baixe em PNG ou SVG.'] },
+
+  { path:'PDF_Editor', cat:'docs', icon:'pdf', pt:true,
+    en:['PDF Editor','Add, remove and reorder pages in a PDF.'],
+    ptT:['Editor de PDF','Adicione, remova e reorganize páginas de um PDF.'] },
+  { path:'PDF_Numbering', cat:'docs', icon:'hash', pt:true,
+    en:['PDF Page Numbering','Add page numbers to a PDF, choosing font, size and position.'],
+    ptT:['Numerar Páginas de PDF','Adicione números às páginas de um PDF, escolhendo fonte, tamanho e posição.'] },
+  { path:'Word_Counter', cat:'docs', icon:'count', pt:true,
+    en:['Word Counter','Count words, characters, lines and sentences, and see the most used words.'],
+    ptT:['Contador de Palavras','Conte palavras, caracteres, linhas e frases e veja as palavras mais usadas.'] },
+  { path:'Line_Compare', cat:'docs', icon:'compare', pt:false,
+    en:['Line Compare','Compare two texts and see every change between them.'],
+    ptT:['Comparar Textos','Compare dois textos e veja todas as mudanças entre eles.'] },
+  { path:'Flowchart_Studio', cat:'docs', icon:'flow', pt:true,
+    en:['Flowchart Studio','Draw flowcharts with every standard shape, a glossary, and several download formats.'],
+    ptT:['Estúdio de Fluxogramas','Desenhe fluxogramas com todas as formas padrão, glossário e vários formatos de download.'] },
+
+  { path:'Password_Generator', cat:'utility', icon:'key', pt:true,
+    en:['Password Generator','Generate strong passwords with the length and characters you choose.'],
+    ptT:['Gerador de Senhas','Gere senhas fortes com o tamanho e os caracteres que você escolher.'] },
+  { path:'Metadata_Stripper', cat:'utility', icon:'strip', pt:true,
+    en:['Metadata Stripper','See the hidden data in your files and remove what you choose.'],
+    ptT:['Removedor de Metadados','Veja os dados ocultos nos seus arquivos e remova o que quiser.'] },
+
+  { path:'Tasks-App', cat:'apps', icon:'check', pt:false,
+    en:['Tasks','A retro task manager with daily and weekly views, folders and subtasks.'],
+    ptT:['Tasks','Gerenciador de tarefas retrô com visão diária e semanal, pastas e subtarefas.'] },
+  { path:'My-Library', cat:'apps', icon:'book', pt:false,
+    en:['My Library','An ebook reader and audiobook shelf you can install on your phone.'],
+    ptT:['My Library','Leitor de ebooks e estante de audiolivros que você pode instalar no celular.'] },
+
+  { path:'Spin_the_Wheel', cat:'games', icon:'wheel', pt:false,
+    en:['Spin the Wheel','An Art Deco prize wheel with as many entries as you like.'],
+    ptT:['Roda da Sorte','Roda giratória em estilo Art Déco, com quantas opções você quiser.'] },
+  { path:'Ultimate_Tic_Tac_Toe', cat:'games', icon:'grid', pt:false,
+    en:['Ultimate Tic Tac Toe','Many versions of tic tac toe, against the computer or a friend.'],
+    ptT:['Jogo da Velha Supremo','Várias versões do jogo da velha, contra o computador ou um amigo.'] }
+];
+
+const CATS = ['design','marketing','docs','utility','apps','games'];
+const LANG_KEY = 'lroui.lang'; // shared by every tool on lro-ui.github.io
+
+function storedLang(){
+  try{ const v = localStorage.getItem(LANG_KEY); if (v && UI[v]) return v; }catch(e){}
+  return (navigator.language || '').toLowerCase().startsWith('pt') ? 'pt' : 'en';
+}
+
+let lang = storedLang();
+let cat = 'all';
+const $ = id => document.getElementById(id);
+const svg = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name]}</svg>`;
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+
+function setLang(next){
+  lang = next;
+  try{ localStorage.setItem(LANG_KEY, next); }catch(e){}
+  applyText();
+  renderChips();
+  render();
+}
+
+function applyText(){
+  const t = UI[lang];
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+  document.title = t.siteName;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t[el.dataset.i18n]; });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t[el.dataset.i18nPlaceholder]; });
+  document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+}
+
+function renderChips(){
+  const t = UI[lang];
+  $('chips').innerHTML = ['all', ...CATS].map(c =>
+    `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === cat}">${esc(c === 'all' ? t.all : t.cat[c])}</button>`
+  ).join('');
+}
+
+function render(){
+  const t = UI[lang];
+  const q = norm($('search').value.trim());
+  const groups = CATS.filter(c => cat === 'all' || c === cat).map(c => {
+    const items = TOOLS.filter(x => x.cat === c).filter(x => {
+      if (!q) return true;
+      return norm([...x.en, ...x.ptT].join(' ')).includes(q);
+    });
+    if (!items.length) return '';
+    const cards = items.map(x => {
+      const usePt = lang === 'pt';
+      const [name, desc] = usePt ? x.ptT : x.en;
+      const href = `/${x.path}/${usePt && x.pt ? 'PT-BR/' : ''}`;
+      const badge = usePt && !x.pt ? `<span class="badge">${esc(t.enOnly)}</span>` : '';
+      return `<a class="card" href="${href}"><span class="ico">${svg(x.icon)}</span><span><h3>${esc(name)}</h3><p>${esc(desc)}</p>${badge}</span></a>`;
+    }).join('');
+    return `<section class="group"><h2 class="group-title">${esc(t.cat[c])}</h2><div class="grid">${cards}</div></section>`;
+  }).join('');
+  $('list').innerHTML = groups;
+  $('empty').hidden = !!groups;
+}
+
+document.querySelector('.lang').addEventListener('click', e => {
+  const b = e.target.closest('button[data-lang]');
+  if (b && b.dataset.lang !== lang) setLang(b.dataset.lang);
+});
+$('chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  cat = b.dataset.cat;
+  renderChips();
+  render();
+});
+$('search').addEventListener('input', render);
+
+applyText();
+renderChips();
+render();
+</script>
+</body>
+</html>

@@ -70,6 +70,8 @@
   body.in-tool{ overflow:hidden; }
   #viewer{ position:fixed; inset:0; background:var(--bg); }
   #frame{ position:absolute; top:0; right:0; bottom:0; left:48px; width:calc(100% - 48px); height:100%; border:0; background:var(--bg); }
+  /* Phone-only apps sit in a phone-width column, the way My Library lays itself out */
+  #viewer.phone #frame{ left:48px; right:0; width:min(480px, calc(100% - 48px)); margin:0 auto; box-shadow:0 0 60px rgba(0,0,0,.55); }
   .rail{ position:absolute; top:0; bottom:0; left:0; width:48px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 0;
     background:var(--panel); border-right:1px solid var(--panel-edge); z-index:3; }
   .rail::after{ content:''; position:absolute; top:0; bottom:0; right:3px; border-right:1px solid rgba(92,127,158,.25); pointer-events:none; }
@@ -103,7 +105,7 @@
     .rail{ top:auto; bottom:14px; left:12px; width:auto; height:auto; flex-direction:row; padding:0; background:none; border:0; }
     .rail::after, .rail .current, .rail .home-btn{ display:none; }
     .rail .menu-btn{ width:46px; height:46px; background:rgba(20,23,31,.92); border:1px solid var(--blue2); color:var(--ink); box-shadow:0 4px 14px rgba(0,0,0,.45); }
-    #frame{ left:0; width:100%; }
+    #frame, #viewer.phone #frame{ left:0; width:100%; }
   }
 
   @media (max-width:600px){
@@ -218,6 +220,7 @@ const ICON = {
 
 // The tool list. path = folder in tools/ (also the #/address); pt = has a pt-br/ folder.
 // src overrides the address for apps that live in their own repo (their installed apps depend on it).
+// phone = the app is designed for phone screens only, so it opens in a phone-width column.
 const TOOLS = [
   { path:'palette-generator', cat:'design', icon:'palette', pt:true,
     en:['Palette Generator','Build color palettes by style and harmony, then download them.'],
@@ -277,7 +280,7 @@ const TOOLS = [
     en:['Metadata Stripper','See the hidden data in your files and remove what you choose.'],
     ptT:['Removedor de Metadados','Veja os dados ocultos nos seus arquivos e remova o que quiser.'] },
 
-  { path:'tasks', src:'/Tasks-App/', cat:'apps', icon:'check', pt:false,
+  { path:'tasks', src:'/Tasks-App/', phone:true, cat:'apps', icon:'check', pt:false,
     en:['Tasks','A retro task manager with daily and weekly views, folders and subtasks.'],
     ptT:['Tasks','Gerenciador de tarefas retrô com visão diária e semanal, pastas e subtarefas.'] },
   { path:'my-library', src:'/My-Library/', cat:'apps', icon:'book', pt:false,
@@ -382,6 +385,7 @@ function route(){
   $('home').hidden = !!current;
   $('viewer').hidden = !current;
   document.body.classList.toggle('in-tool', !!current);
+  $('viewer').classList.toggle('phone', !!current?.phone);
   setMenu(false);
   if (current){
     loadFrame();
